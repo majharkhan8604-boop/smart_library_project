@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}My Reservations - Smart Library{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-bell"></i> My Reservations</h2>
+
+{% if reservations %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Book</th>
+                    <th>Reserved On</th>
+                    <th>Status</th>
+                    <th>Position</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for res in reservations %}
+                    <tr {% if res.status == 'ready' %}class="table-success"{% endif %}>
+                        <td><a href="{% url 'books:book_detail' res.book.id %}">{{ res.book.title }}</a></td>
+                        <td>{{ res.reserved_on|date:"M d, Y H:i" }}</td>
+                        <td>
+                            {% if res.status == 'waiting' %}
+                                <span class="badge bg-warning text-dark">Waiting</span>
+                            {% elif res.status == 'ready' %}
+                                <span class="badge bg-success">Ready for Pickup!</span>
+                            {% elif res.status == 'fulfilled' %}
+                                <span class="badge bg-primary">Fulfilled</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if res.position %}
+                                #{{ res.position }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if res.status == 'ready' %}
+                                <a href="{% url 'books:borrow_book' res.book.id %}" class="btn btn-sm btn-success">Borrow Now</a>
+                            {% endif %}
+                            {% if res.status == 'waiting' or res.status == 'ready' %}
+                                <a href="{% url 'books:cancel_reservation' res.id %}" class="btn btn-sm btn-outline-danger">Cancel</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <p>You have no active reservations.</p>
+        <a href="{% url 'books:book_list' %}" class="btn btn-primary">Browse Books</a>
+    </div>
+{% endif %}
+{% endblock %}

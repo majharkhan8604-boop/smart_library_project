@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% block title %}Reports - Smart Library{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-file-earmark-bar-graph"></i> Reports Dashboard</h2>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    <strong>Email Notifications:</strong> Development mode mein emails terminal par print honge (console backend).
+    <a href="{% url 'books:send_reminders' %}" class="btn btn-warning btn-sm ms-2">
+        <i class="bi bi-envelope-paper"></i> Send All Reminders
+    </a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card text-center bg-primary text-white">
+            <div class="card-body">
+                <h2>{{ total_books }}</h2>
+                <p class="mb-0">Total Books</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center bg-info text-white">
+            <div class="card-body">
+                <h2>{{ total_members }}</h2>
+                <p class="mb-0">Total Members</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center bg-warning text-dark">
+            <div class="card-body">
+                <h2>{{ total_borrowed }}</h2>
+                <p class="mb-0">Currently Borrowed</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center bg-danger text-white">
+            <div class="card-body">
+                <h2>{{ total_overdue }}</h2>
+                <p class="mb-0">Overdue</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center bg-success text-white">
+            <div class="card-body">
+                <h2>{{ total_returned }}</h2>
+                <p class="mb-0">Total Returned</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-secondary text-white">
+            <div class="card-body">
+                <h2>{{ total_reviews }}</h2>
+                <p class="mb-0">Total Reviews</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-warning text-dark">
+            <div class="card-body">
+                <h2>{{ total_waitlist }}</h2>
+                <p class="mb-0">In Waitlist</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-success text-white">
+            <div class="card-body">
+                <h2>{{ total_ready }}</h2>
+                <p class="mb-0">Ready for Pickup</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card text-center bg-success text-white">
+            <div class="card-body">
+                <h2>₹{{ total_fine_collected }}</h2>
+                <p class="mb-0">Fine Collected</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card text-center bg-danger text-white">
+            <div class="card-body">
+                <h2>₹{{ total_fine_pending }}</h2>
+                <p class="mb-0">Fine Pending</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h4 class="mb-3">Export Reports (CSV)</h4>
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-book fs-1 text-primary"></i>
+                <h5 class="mt-2">Books</h5>
+                <a href="{% url 'books:export_books' %}" class="btn btn-primary w-100 btn-sm">
+                    <i class="bi bi-download"></i> Download
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-journal-text fs-1 text-success"></i>
+                <h5 class="mt-2">Borrow Records</h5>
+                <a href="{% url 'books:export_borrow_records' %}" class="btn btn-success w-100 btn-sm">
+                    <i class="bi bi-download"></i> Download
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-people fs-1 text-info"></i>
+                <h5 class="mt-2">Members</h5>
+                <a href="{% url 'books:export_members' %}" class="btn btn-info w-100 btn-sm">
+                    <i class="bi bi-download"></i> Download
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-bell fs-1 text-warning"></i>
+                <h5 class="mt-2">Reservations</h5>
+                <a href="{% url 'books:export_reservations' %}" class="btn btn-warning w-100 btn-sm">
+                    <i class="bi bi-download"></i> Download
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

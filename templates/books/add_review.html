@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Review {{ book.title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h3>Review: {{ book.title }}</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Rating (1-5)</label>
+                        <select name="rating" class="form-select" required>
+                            <option value="5">5 ★ - Excellent</option>
+                            <option value="4">4 ★ - Good</option>
+                            <option value="3">3 ★ - Average</option>
+                            <option value="2">2 ★ - Poor</option>
+                            <option value="1">1 ★ - Bad</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Comment</label>
+                        <textarea name="comment" class="form-control" rows="4"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Submit Review</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

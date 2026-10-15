@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% block title %}AI Chatbot - Smart Library{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-robot"></i> Library Assistant</h2>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body" style="height: 500px; overflow-y: auto;" id="chat-messages">
+                <div class="mb-3">
+                    <div class="d-flex align-items-start">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+                            <i class="bi bi-robot"></i>
+                        </div>
+                        <div class="ms-2 bg-light rounded p-3">
+                            <strong>Assistant:</strong> Hello! 👋 I'm the Smart Library assistant. Ask me about books!<br><br>
+                            Try:
+                            <ul class="mb-0 mt-2">
+                                <li>"suggest science fiction books"</li>
+                                <li>"best rated books"</li>
+                                <li>"available books"</li>
+                                <li>"books by author name"</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <form id="chat-form" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <input type="text" id="chat-input" class="form-control" placeholder="Type your message..." autocomplete="off">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send"></i> Send
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5>Quick Suggestions</h5>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm quick-ask" data-msg="suggest some books">📚 Suggest books</button>
+                    <button class="btn btn-outline-primary btn-sm quick-ask" data-msg="best rated books">⭐ Top rated</button>
+                    <button class="btn btn-outline-primary btn-sm quick-ask" data-msg="available books">✅ Available books</button>
+                    <button class="btn btn-outline-primary btn-sm quick-ask" data-msg="recommend books for me">🎯 For me</button>
+                    <button class="btn btn-outline-primary btn-sm quick-ask" data-msg="help">❓ Help</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('chat-input');
+    const messagesDiv = document.getElementById('chat-messages');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    function addUserMessage(text) {
+        const div = document.createElement('div');
+        div.className = 'mb-3 d-flex justify-content-end';
+        div.innerHTML = `
+            <div class="bg-primary text-white rounded p-3" style="max-width: 75%;">
+                ${text}
+            </div>
+        `;
+        messagesDiv.appendChild(div);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function addBotMessage(text, books) {
+        const div = document.createElement('div');
+        div.className = 'mb-3';
+        let booksHtml = '';
+
+        if (books && books.length > 0) {
+            booksHtml = '<div class="row mt-2 g-2">';
+            books.forEach(book => {
+                booksHtml += `
+                    <div class="col-md-6">
+                        <a href="/books/${book.id}/" class="text-decoration-none">
+                            <div class="card h-100">
+                                <div class="card-body p-2">
+                                    <strong class="text-dark">${book.title}</strong><br>
+                                    <small class="text-muted">by ${book.author}</small><br>
+                                    <span class="badge bg-secondary mt-1">${book.category}</span>
+                                    <span class="badge ${book.available ? 'bg-success' : 'bg-danger'} mt-1">
+                                        ${book.available ? book.available_copies + ' available' : 'Unavailable'}
+                                    </span>
+                                    <br><small class="text-warning">★ ${book.average_rating}/5</small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                `;
+            });
+            booksHtml += '</div>';
+        }
+
+        div.innerHTML = `
+            <div class="d-flex align-items-start">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="ms-2 bg-light rounded p-3" style="max-width: 85%;">
+                    <strong>Assistant:</strong> ${text}
+                    ${booksHtml}
+                </div>
+            </div>
+        `;
+        messagesDiv.appendChild(div);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function sendMessage(text) {
+        if (!text.trim()) return;
+
+        addUserMessage(text);
+        input.value = '';
+
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'mb-3';
+        loadingDiv.id = 'loading-indicator';
+        loadingDiv.innerHTML = `
+            <div class="d-flex align-items-center">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="ms-2 bg-light rounded p-3">
+                    <em>Assistant is typing...</em>
+                </div>
+            </div>
+        `;
+        messagesDiv.appendChild(loadingDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        fetch('/chatbot/api/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'message=' + encodeURIComponent(text),
+        })
+        .then(response => response.json())
+        .then(data => {
+            const loading = document.getElementById('loading-indicator');
+            if (loading) loading.remove();
+            addBotMessage(data.text, data.books);
+        })
+        .catch(error => {
+            const loading = document.getElementById('loading-indicator');
+            if (loading) loading.remove();
+            addBotMessage("Sorry, something went wrong. Please try again.", []);
+            console.error('Chatbot error:', error);
+        });
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        sendMessage(input.value);
+    });
+
+    document.querySelectorAll('.quick-ask').forEach(btn => {
+        btn.addEventListener('click', function() {
+            sendMessage(this.dataset.msg);
+        });
+    });
+});
+</script>
+{% endblock %}

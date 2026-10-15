@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}{{ book.title }} - Smart Library{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        {% if book.cover_image %}
+            <img src="{{ book.cover_image.url }}" class="img-fluid mb-3 rounded" alt="{{ book.title }}" style="max-height: 400px;">
+        {% endif %}
+        <h2>{{ book.title }}</h2>
+        <p class="text-muted fs-5">by {{ book.author }}</p>
+        <p><span class="badge bg-secondary">{{ book.category.name|default:"Uncategorized" }}</span></p>
+        <p><strong>ISBN:</strong> {{ book.isbn }}</p>
+        <p><strong>Published:</strong> {{ book.published_year|default:"N/A" }}</p>
+        <p>{{ book.description }}</p>
+        <p class="star-rating fs-4">
+            {% for i in "12345" %}
+                {% if forloop.counter <= book.average_rating %}★{% else %}☆{% endif %}
+            {% endfor %}
+            <small class="text-muted">({{ book.average_rating }}/5)</small>
+        </p>
+        {% if book.waitlist_count > 0 %}
+            <p class="text-warning"><i class="bi bi-people-fill"></i> {{ book.waitlist_count }} people in waitlist</p>
+        {% endif %}
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                {% if book.is_available %}
+                    <p class="badge bg-success fs-6">Available ({{ book.available_copies }} copies)</p>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'books:borrow_book' book.id %}" class="btn btn-primary w-100 mt-2">Borrow This Book</a>
+                    {% else %}
+                        <a href="{% url 'books:login' %}" class="btn btn-outline-primary w-100 mt-2">Login to Borrow</a>
+                    {% endif %}
+                {% else %}
+                    <p class="badge bg-danger fs-6">Not Available</p>
+                    {% if user.is_authenticated %}
+                        {% if user_reservation %}
+                            <div class="alert alert-info mt-2">
+                                <strong>You're in the waitlist</strong><br>
+                                Position: #{{ user_reservation.position }}<br>
+                                Status: {{ user_reservation.get_status_display }}
+                            </div>
+                            <a href="{% url 'books:cancel_reservation' user_reservation.id %}" class="btn btn-outline-danger w-100">Cancel Reservation</a>
+                        {% else %}
+                            <a href="{% url 'books:reserve_book' book.id %}" class="btn btn-warning w-100 mt-2">
+                                <i class="bi bi-bell"></i> Join Waitlist
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a href="{% url 'books:login' %}" class="btn btn-outline-warning w-100 mt-2">Login to Join Waitlist</a>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<hr class="my-4">
+
+<h4>Reviews</h4>
+{% if user.is_authenticated %}
+    <a href="{% url 'books:add_review' book.id %}" class="btn btn-outline-primary mb-3">Write a Review</a>
+{% endif %}
+
+{% for review in reviews %}
+    <div class="card mb-2">
+        <div class="card-body">
+            <strong>{{ review.member.user.username }}</strong>
+            <span class="star-rating">
+                {% for i in "12345" %}
+                    {% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}
+                {% endfor %}
+            </span>
+            <small class="text-muted">{{ review.created_on|date:"M d, Y" }}</small>
+            <p class="mb-0 mt-2">{{ review.comment }}</p>
+        </div>
+    </div>
+{% empty %}
+    <p class="text-muted">No reviews yet.</p>
+{% endfor %}
+{% endblock %}

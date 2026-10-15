@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}Barcode Scanner - Smart Library{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-upc-scan"></i> ISBN Barcode Scanner</h2>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    Camera ko barcode ke saamne rakhein. Scan hone par ISBN automatically copy ho jayega.
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div id="reader" style="width: 100%;"></div>
+                <button id="start-btn" class="btn btn-primary w-100 mt-3">
+                    <i class="bi bi-camera-video"></i> Start Scanner
+                </button>
+                <button id="stop-btn" class="btn btn-danger w-100 mt-2" style="display:none;">
+                    <i class="bi bi-stop-circle"></i> Stop Scanner
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5>Scanned ISBN</h5>
+                <div class="input-group mb-3">
+                    <input type="text" id="scanned-isbn" class="form-control form-control-lg" placeholder="Scan karein..." readonly>
+                    <button class="btn btn-outline-secondary" onclick="copyISBN()">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                </div>
+
+                <h5 class="mt-4">Scan History</h5>
+                <ul id="scan-history" class="list-group">
+                    <li class="list-group-item text-muted">Abhi tak koi scan nahi hua</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+let html5QrCode = null;
+
+document.getElementById('start-btn').addEventListener('click', function() {
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+    }
+
+    html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 150 } },
+        (decodedText) => {
+            document.getElementById('scanned-isbn').value = decodedText;
+            addToHistory(decodedText);
+        },
+        (errorMessage) => {}
+    ).then(() => {
+        document.getElementById('start-btn').style.display = 'none';
+        document.getElementById('stop-btn').style.display = 'block';
+    }).catch(err => {
+        alert("Camera access denied: " + err);
+    });
+});
+
+document.getElementById('stop-btn').addEventListener('click', function() {
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+            document.getElementById('start-btn').style.display = 'block';
+            document.getElementById('stop-btn').style.display = 'none';
+        });
+    }
+});
+
+function addToHistory(isbn) {
+    const history = document.getElementById('scan-history');
+    if (history.children[0] && history.children[0].classList.contains('text-muted')) {
+        history.innerHTML = '';
+    }
+
+    const li = document.createElement('li');
+    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+    li.innerHTML = `
+        <span><strong>${isbn}</strong></span>
+        <small class="text-muted">${new Date().toLocaleTimeString()}</small>
+    `;
+    history.insertBefore(li, history.firstChild);
+}
+
+function copyISBN() {
+    const input = document.getElementById('scanned-isbn');
+    if (input.value) {
+        navigator.clipboard.writeText(input.value);
+        alert("ISBN copied: " + input.value);
+    }
+}
+</script>
+{% endblock %}

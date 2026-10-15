@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Recommendations - Smart Library{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-stars"></i> Recommended For You</h2>
+
+{% if recommendations %}
+    <div class="row">
+        {% for rec in recommendations %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    {% if rec.book.cover_image %}
+                        <img src="{{ rec.book.cover_image.url }}" class="card-img-top" alt="{{ rec.book.title }}" style="height: 200px; object-fit: cover;">
+                    {% else %}
+                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <i class="bi bi-book fs-1"></i>
+                        </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <span class="badge bg-info mb-2">{{ rec.type }}</span>
+                        <h5 class="card-title">{{ rec.book.title }}</h5>
+                        <p class="text-muted">by {{ rec.book.author }}</p>
+                        <p class="star-rating">★ {{ rec.book.average_rating }}/5</p>
+                        <p class="small text-success"><i class="bi bi-info-circle"></i> {{ rec.reason }}</p>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{% url 'books:book_detail' rec.book.id %}" class="btn btn-sm btn-primary w-100">View Details</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <p>No recommendations yet. Borrow some books or write reviews to get personalized suggestions.</p>
+        <a href="{% url 'books:book_list' %}" class="btn btn-primary">Browse Books</a>
+    </div>
+{% endif %}
+{% endblock %}
