@@ -33,6 +33,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'books.middleware.LoginRequiredMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -130,3 +131,18 @@ REST_FRAMEWORK = {
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+# Whitelist — sirf yeh pages bina login ke accessible
+# Baaki SAB kuch login-protected hai (API, Admin, Static, Media)
+LOGIN_EXEMPT_URLS = [
+    # Authentication pages (zaroori)
+    r'^login/$',
+    r'^register/$',
+    r'^logout/$',
+    
+    # Admin login page (admin panel ke liye zaroori)
+    r'^admin/login/$',
+    
+    # API auth endpoints (mobile app ke liye)
+    r'^api/auth/login/$',
+    r'^api/auth/register/$',
+]

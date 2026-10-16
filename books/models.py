@@ -53,6 +53,7 @@ class Member(models.Model):
     membership_date = models.DateField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     library_card_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    profile_photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
     def save(self, *args, **kwargs):
         if not self.library_card_number:
             last_member = Member.objects.order_by('-id').first()

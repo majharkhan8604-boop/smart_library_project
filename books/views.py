@@ -381,6 +381,7 @@ def profile(request):
 
 
 @login_required
+@login_required
 def edit_profile(request):
     member, created = Member.objects.get_or_create(user=request.user)
 
@@ -392,13 +393,17 @@ def edit_profile(request):
 
         member.phone = request.POST.get('phone', '')
         member.address = request.POST.get('address', '')
+
+        # Profile photo upload
+        if 'profile_photo' in request.FILES:
+            member.profile_photo = request.FILES['profile_photo']
+
         member.save()
 
         messages.success(request, "Profile updated successfully!")
         return redirect('books:profile')
 
     return render(request, 'books/edit_profile.html', {'member': member})
-
 
 # ============ CHATBOT VIEWS ============
 
