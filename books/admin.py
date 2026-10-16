@@ -1,6 +1,8 @@
 from datetime import date
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.utils.html import format_html
 from .models import Category, Book, Member, BorrowRecord, Review, Reservation
+from .utils import fetch_cover_from_google_books
 
 
 @admin.register(Category)
@@ -11,13 +13,43 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
-    list_display = ('title', 'author', 'isbn', 'category', 'total_copies', 'available_copies', 'waitlist_count')
+    list_display = ('title', 'author', 'isbn', 'category', 'total_copies', 'available_copies', 'cover_preview', 'waitlist_count')
     list_filter = ('category', 'published_year')
     search_fields = ('title', 'author', 'isbn')
+    actions = ['fetch_covers_action']
+
+    def cover_preview(self, obj):
+        if obj.cover_image:
+            return format_html('<img src="{}" style="height: 60px; border-radius: 4px;" />', obj.cover_image)
+        return '❌ No cover'
+    cover_preview.short_description = 'Cover'
 
     def waitlist_count(self, obj):
         return obj.waitlist_count
     waitlist_count.short_description = 'Waitlist'
+
+    @admin.action(description='📸 Fetch covers from Google Books API')
+    def fetch_covers_action(self, request, queryset):
+        success = 0
+        skipped = 0
+        failed = 0
+        for book in queryset:
+            if book.cover_image:
+                skipped += 1
+                continue
+            url = fetch_cover_from_google_books(book.isbn)
+            if url:
+                book.cover_image = url
+                book.save()
+                success += 1
+            else:
+                failed += 1
+
+        self.message_user(
+            request,
+            f"✅ Fetched: {success} | ⏭️ Skipped (already had cover): {skipped} | ❌ Failed: {failed}",
+            messages.SUCCESS
+        )
 
 
 @admin.register(Member)
@@ -61,3 +93,4 @@ class ReviewAdmin(admin.ModelAdmin):
     list_display = ('book', 'member', 'rating', 'created_on')
     list_filter = ('rating', 'created_on')
     search_fields = ('book__title', 'member__user__username')
+

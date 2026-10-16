@@ -15,7 +15,7 @@
         <div class="col-md-3 mb-4">
             <div class="card h-100">
                 {% if book.cover_image %}
-                    <img src="{{ book.cover_image.url }}" class="card-img-top" alt="{{ book.title }}" style="height: 250px; object-fit: cover;">
+                    <img src="{{ book.cover_image }}" class="card-img-top" alt="{{ book.title }}" style="height: 250px; object-fit: cover;">
                 {% else %}
                     <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 250px;">
                         <i class="bi bi-book fs-1"></i>

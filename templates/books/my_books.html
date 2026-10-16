@@ -21,6 +21,7 @@
                     <th>Due Date</th>
                     <th>Return Date</th>
                     <th>Status</th>
+                    <th>Renewals</th>
                     <th>Fine</th>
                     <th>Action</th>
                 </tr>
@@ -42,6 +43,9 @@
                             {% endif %}
                         </td>
                         <td>
+                            <span class="badge bg-info">{{ record.renewal_count }}/2</span>
+                        </td>
+                        <td>
                             {% if record.fine_amount > 0 %}
                                 {% if record.fine_paid %}
                                     <span class="badge bg-success">₹{{ record.fine_amount }} Paid</span>
@@ -55,6 +59,9 @@
                         <td>
                             {% if record.status != 'returned' %}
                                 <a href="{% url 'books:return_book' record.id %}" class="btn btn-sm btn-warning">Return</a>
+                                {% if record.can_renew %}
+                                    <a href="{% url 'books:renew_book' record.id %}" class="btn btn-sm btn-info">Renew</a>
+                                {% endif %}
                             {% elif record.fine_amount > 0 and not record.fine_paid %}
                                 <a href="{% url 'books:pay_fine' record.id %}" class="btn btn-sm btn-danger">Pay Fine</a>
                             {% endif %}

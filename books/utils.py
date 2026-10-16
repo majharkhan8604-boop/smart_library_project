@@ -1,7 +1,40 @@
+import urllib.request
+import urllib.parse
+import json
 from django.core.mail import send_mail
 from django.conf import settings
 from datetime import date
 from django.db.models import Q, Avg
+
+
+# ============ GOOGLE BOOKS API ============
+
+def fetch_cover_from_google_books(isbn):
+    """
+    Fetch cover image URL from Google Books API using ISBN.
+    Returns: URL string or None
+    """
+    try:
+        query = f"isbn:{isbn}"
+        url = f"https://www.googleapis.com/books/v1/volumes?q={urllib.parse.quote(query)}"
+
+        req = urllib.request.Request(url, headers={'User-Agent': 'SmartLibrary/1.0'})
+        with urllib.request.urlopen(req, timeout=8) as response:
+            data = json.loads(response.read().decode('utf-8'))
+
+        if data.get('totalItems', 0) > 0:
+            volume_info = data['items'][0].get('volumeInfo', {})
+            image_links = volume_info.get('imageLinks', {})
+
+            for size in ['extraLarge', 'large', 'medium', 'small', 'thumbnail', 'smallThumbnail']:
+                if size in image_links:
+                    img_url = image_links[size].replace('http://', 'https://')
+                    return img_url
+
+        return None
+    except Exception as e:
+        print(f"Cover fetch failed for ISBN {isbn}: {e}")
+        return None
 
 
 # ============ EMAIL FUNCTIONS ============
@@ -73,35 +106,24 @@ Smart Library Team
 # ============ CHATBOT LOGIC ============
 
 def chatbot_response(message, user=None):
-    """
-    Rule-based AI chatbot. Extracts keywords from user message
-    and suggests relevant books from the database.
-    """
     from .models import Book, Category, BorrowRecord, Member
 
     message_lower = message.lower().strip()
-    response = {
-        'text': '',
-        'books': []
-    }
+    response = {'text': '', 'books': []}
 
-    # Greeting detection
     greetings = ['hi', 'hello', 'hey', 'namaste', 'hii', 'helo']
     if any(g in message_lower.split() for g in greetings) or message_lower in greetings:
         response['text'] = "Hello! 👋 I'm the Smart Library assistant. You can ask me about books. For example:\n\n• 'suggest science fiction books'\n• 'best rated books'\n• 'programming books'\n• 'books by Paulo Coelho'"
         return response
 
-    # Help
     if 'help' in message_lower:
         response['text'] = "I can help you with:\n\n• Category search: 'science books', 'history books'\n• Author search: 'books by Stephen Hawking'\n• Ratings: 'best books', 'top rated'\n• Availability: 'available books'\n• Recommendations: 'recommend books'"
         return response
 
-    # Thanks
     if 'thank' in message_lower or 'thanks' in message_lower:
         response['text'] = "You're welcome! 😊 Let me know if you need more book suggestions."
         return response
 
-    # Author search
     if 'by ' in message_lower or 'author' in message_lower:
         query = message_lower.replace('books by', '').replace('author', '').replace('by', '').strip()
         if query:
@@ -111,7 +133,6 @@ def chatbot_response(message, user=None):
                 response['books'] = list(books)
                 return response
 
-    # Category keywords detection
     categories = Category.objects.all()
     matched_category = None
     for cat in categories:
@@ -126,7 +147,6 @@ def chatbot_response(message, user=None):
             response['books'] = list(books)
             return response
 
-    # "Best" / "Top rated" detection
     if 'best' in message_lower or 'top' in message_lower or 'highest' in message_lower or 'rating' in message_lower:
         books = Book.objects.annotate(avg_rating=Avg('reviews__rating')).filter(avg_rating__gte=4).order_by('-avg_rating')[:5]
         if books:
@@ -137,14 +157,12 @@ def chatbot_response(message, user=None):
             response['text'] = "No books have received a 4★+ rating yet."
             return response
 
-    # "Available" detection
     if 'available' in message_lower:
         books = Book.objects.filter(available_copies__gt=0)[:6]
         response['text'] = "These books are currently available:"
         response['books'] = list(books)
         return response
 
-    # "Recommend" / "Suggest" detection
     if 'recommend' in message_lower or 'suggest' in message_lower:
         if user and user.is_authenticated:
             try:
@@ -165,7 +183,6 @@ def chatbot_response(message, user=None):
         response['books'] = list(books)
         return response
 
-    # Generic keyword search
     words = [w for w in message_lower.split() if len(w) > 2]
     query = Q()
     for word in words:
@@ -178,6 +195,5 @@ def chatbot_response(message, user=None):
             response['books'] = list(books)
             return response
 
-    # Fallback
     response['text'] = "Sorry, I didn't understand that. 🤔 Try asking like:\n\n• 'suggest science books'\n• 'best rated books'\n• 'books by author name'\n• 'available books'\n\nOr type 'help'."
     return response

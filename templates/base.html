@@ -36,6 +36,7 @@
                         {% if user.is_staff %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'books:reports' %}">Reports</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'books:scanner' %}">Scanner</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'books:librarian_issue' %}">Issue</a></li>
                             <li class="nav-item"><a class="nav-link" href="/admin/">Admin</a></li>
                         {% endif %}
                         <li class="nav-item"><a class="nav-link" href="{% url 'books:logout' %}">Logout ({{ user.username }})</a></li>

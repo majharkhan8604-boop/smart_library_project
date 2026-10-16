@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Issue Receipt{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <h3><i class="bi bi-book"></i> Smart Library</h3>
+                    <p class="text-muted">Issue Receipt</p>
+                </div>
+
+                <table class="table table-bordered">
+                    <tr>
+                        <th width="40%">Receipt No</th>
+                        <td>BR-{{ record.id|stringformat:"04d" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date</th>
+                        <td>{{ record.borrow_date }}</td>
+                    </tr>
+                    <tr>
+                        <th>Student</th>
+                        <td>{{ record.member.user.username }}</td>
+                    </tr>
+                    <tr>
+                        <th>Card Number</th>
+                        <td>{{ record.member.library_card_number }}</td>
+                    </tr>
+                    <tr>
+                        <th>Book Title</th>
+                        <td>{{ record.book.title }}</td>
+                    </tr>
+                    <tr>
+                        <th>Author</th>
+                        <td>{{ record.book.author }}</td>
+                    </tr>
+                    <tr>
+                        <th>ISBN</th>
+                        <td>{{ record.book.isbn }}</td>
+                    </tr>
+                    <tr>
+                        <th>Due Date</th>
+                        <td><strong>{{ record.due_date }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Fine (if late)</th>
+                        <td>₹5/day</td>
+                    </tr>
+                </table>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Please return the book by the due date to avoid fines.
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button onclick="window.print()" class="btn btn-primary">
+                        <i class="bi bi-printer"></i> Print Receipt
+                    </button>
+                    <a href="{% url 'books:librarian_issue' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Issue Another Book
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

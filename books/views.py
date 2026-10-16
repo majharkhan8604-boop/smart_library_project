@@ -334,6 +334,29 @@ def pay_fine(request, record_id):
 
 
 @login_required
+def renew_book(request, record_id):
+    record = get_object_or_404(BorrowRecord, id=record_id, member__user=request.user)
+
+    if record.status == 'returned':
+        messages.error(request, "This book has already been returned.")
+        return redirect('books:my_books')
+
+    if record.renewal_count >= 2:
+        messages.error(request, "Maximum renewals reached (2). Please return the book.")
+        return redirect('books:my_books')
+
+    if date.today() > record.due_date:
+        messages.error(request, "Cannot renew overdue book. Please return it first.")
+        return redirect('books:my_books')
+
+    record.due_date = record.due_date + timedelta(days=14)
+    record.renewal_count += 1
+    record.save()
+
+    messages.success(request, f"'{record.book.title}' renewed! New due date: {record.due_date} (Renewal {record.renewal_count}/2)")
+    return redirect('books:my_books')
+
+@login_required
 def profile(request):
     member, created = Member.objects.get_or_create(user=request.user)
 
@@ -411,6 +434,69 @@ def chatbot_api(request):
     return JsonResponse({'error': 'POST required'}, status=405)
 
 
+# ============ LIBRARIAN ISSUE SYSTEM ============
+
+@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+def librarian_issue(request):
+    if request.method == 'POST':
+        card_number = request.POST.get('card_number', '').strip()
+        isbn = request.POST.get('isbn', '').strip()
+
+        try:
+            member = Member.objects.get(library_card_number=card_number)
+        except Member.DoesNotExist:
+            messages.error(request, f"Member not found with card number: {card_number}")
+            return redirect('books:librarian_issue')
+
+        try:
+            book = Book.objects.get(isbn=isbn)
+        except Book.DoesNotExist:
+            messages.error(request, f"Book not found with ISBN: {isbn}")
+            return redirect('books:librarian_issue')
+
+        if not book.is_available:
+            messages.error(request, f"'{book.title}' is not available.")
+            return redirect('books:librarian_issue')
+
+        unpaid_fine = sum(r.fine_amount for r in BorrowRecord.objects.filter(member=member, fine_paid=False))
+        if unpaid_fine > 0:
+            messages.error(request, f"{member.user.username} has pending fine of ₹{unpaid_fine}.")
+            return redirect('books:librarian_issue')
+
+        existing = BorrowRecord.objects.filter(member=member, book=book, status='borrowed').exists()
+        if existing:
+            messages.error(request, f"{member.user.username} has already borrowed this book.")
+            return redirect('books:librarian_issue')
+
+        record = BorrowRecord.objects.create(
+            member=member,
+            book=book,
+            due_date=date.today() + timedelta(days=14),
+            status='borrowed',
+        )
+        book.available_copies -= 1
+        book.save()
+
+        messages.success(request, f"'{book.title}' issued to {member.user.username} (Card: {member.library_card_number}). Due: {record.due_date}")
+        return redirect('books:issue_receipt', record_id=record.id)
+
+    total_members = Member.objects.count()
+    total_books = Book.objects.count()
+    recent_records = BorrowRecord.objects.select_related('member__user', 'book').order_by('-borrow_date')[:5]
+
+    return render(request, 'books/librarian_issue.html', {
+        'total_members': total_members,
+        'total_books': total_books,
+        'recent_records': recent_records,
+    })
+
+
+@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+def issue_receipt(request, record_id):
+    record = get_object_or_404(BorrowRecord, id=record_id)
+    return render(request, 'books/receipt.html', {'record': record})
+
+
 # ============ EMAIL NOTIFICATION ADMIN VIEW ============
 
 @user_passes_test(lambda u: u.is_staff or u.is_superuser)
@@ -436,10 +522,7 @@ def send_all_reminders(request):
             send_fine_reminder(record)
             fine_count += 1
 
-    messages.success(
-        request,
-        f"Emails sent: {due_soon} due reminders, {overdue_count} overdue notices, {fine_count} fine reminders."
-    )
+    messages.success(request, f"Emails sent: {due_soon} due reminders, {overdue_count} overdue notices, {fine_count} fine reminders.")
     return redirect('books:reports')
 
 
@@ -480,10 +563,11 @@ def export_borrow_records_csv(request):
     response['Content-Disposition'] = 'attachment; filename="borrow_records.csv"'
     response.write('\ufeff')
     writer = csv.writer(response)
-    writer.writerow(['Member', 'Book', 'Borrow Date', 'Due Date', 'Return Date', 'Status', 'Days Overdue', 'Fine (₹)', 'Fine Paid'])
+    writer.writerow(['Member', 'Card No', 'Book', 'Borrow Date', 'Due Date', 'Return Date', 'Status', 'Days Overdue', 'Fine (₹)', 'Fine Paid'])
     for record in BorrowRecord.objects.all().order_by('-borrow_date'):
         writer.writerow([
-            record.member.user.username, record.book.title,
+            record.member.user.username, record.member.library_card_number or '',
+            record.book.title,
             record.borrow_date, record.due_date,
             record.return_date or '', record.status,
             record.days_overdue, record.fine_amount,
@@ -498,12 +582,13 @@ def export_members_csv(request):
     response['Content-Disposition'] = 'attachment; filename="members.csv"'
     response.write('\ufeff')
     writer = csv.writer(response)
-    writer.writerow(['Username', 'Email', 'Phone', 'Address', 'Membership Date', 'Active', 'Total Borrowed', 'Pending Fine (₹)'])
+    writer.writerow(['Username', 'Card No', 'Email', 'Phone', 'Address', 'Membership Date', 'Active', 'Total Borrowed', 'Pending Fine (₹)'])
     for member in Member.objects.all():
         total = BorrowRecord.objects.filter(member=member).count()
         pending_fine = sum(r.fine_amount for r in BorrowRecord.objects.filter(member=member, fine_paid=False))
         writer.writerow([
-            member.user.username, member.user.email,
+            member.user.username, member.library_card_number or '',
+            member.user.email,
             member.phone or '', member.address or '',
             member.membership_date,
             'Yes' if member.is_active else 'No',
@@ -518,10 +603,11 @@ def export_reservations_csv(request):
     response['Content-Disposition'] = 'attachment; filename="reservations.csv"'
     response.write('\ufeff')
     writer = csv.writer(response)
-    writer.writerow(['Member', 'Book', 'Reserved On', 'Status', 'Position'])
+    writer.writerow(['Member', 'Card No', 'Book', 'Reserved On', 'Status', 'Position'])
     for res in Reservation.objects.all().order_by('-reserved_on'):
         writer.writerow([
-            res.member.user.username, res.book.title,
+            res.member.user.username, res.member.library_card_number or '',
+            res.book.title,
             res.reserved_on.strftime('%Y-%m-%d %H:%M'),
             res.status, res.position or '-',
         ])

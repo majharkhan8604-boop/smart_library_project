@@ -4,6 +4,9 @@ from . import views
 app_name = 'books'
 
 urlpatterns = [
+    path('renew/<int:record_id>/', views.renew_book, name='renew_book'),
+    path('librarian/issue/', views.librarian_issue, name='librarian_issue'),
+    path('librarian/receipt/<int:record_id>/', views.issue_receipt, name='issue_receipt'),
     path('', views.home, name='home'),
     path('books/', views.book_list, name='book_list'),
     path('api/autocomplete/', views.autocomplete_books, name='autocomplete_books'),

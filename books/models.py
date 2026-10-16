@@ -21,7 +21,7 @@ class Book(models.Model):
     isbn = models.CharField(max_length=13, unique=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='books')
     description = models.TextField(blank=True)
-    cover_image = models.ImageField(upload_to='book_covers/', blank=True, null=True)
+    cover_image = models.CharField(max_length=500, blank=True, null=True)
     total_copies = models.PositiveIntegerField(default=1)
     available_copies = models.PositiveIntegerField(default=1)
     published_year = models.PositiveIntegerField(blank=True, null=True)
@@ -52,15 +52,22 @@ class Member(models.Model):
     address = models.TextField(blank=True)
     membership_date = models.DateField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
-
+    library_card_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    def save(self, *args, **kwargs):
+        if not self.library_card_number:
+            last_member = Member.objects.order_by('-id').first()
+            num = (last_member.id + 1) if last_member else 1
+            # Ensure uniqueness — agar number already exists, increment karein
+            while Member.objects.filter(library_card_number=f"LIB2026{num:04d}").exists():
+                num += 1
+            self.library_card_number = f"LIB2026{num:04d}"
+        super().save(*args, **kwargs)
     def __str__(self):
-        return self.user.username
+        return f"{self.user.username} ({self.library_card_number})"
 
     @property
     def total_fine(self):
         return sum(record.fine_amount for record in self.borrow_records.all())
-
-
 class BorrowRecord(models.Model):
     STATUS_CHOICES = [
         ('borrowed', 'Borrowed'),
@@ -77,7 +84,7 @@ class BorrowRecord(models.Model):
     return_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='borrowed')
     fine_paid = models.BooleanField(default=False)
-
+    renewal_count = models.PositiveIntegerField(default=0)
     def __str__(self):
         return f"{self.member.user.username} - {self.book.title}"
 
@@ -92,7 +99,16 @@ class BorrowRecord(models.Model):
             if today > self.due_date:
                 return (today - self.due_date).days
         return 0
-
+    @property
+    def can_renew(self):
+        """Check if book can be renewed"""
+        if self.status != 'borrowed':
+            return False
+        if self.renewal_count >= 2:
+            return False
+        if date.today() > self.due_date:
+            return False
+        return True
     @property
     def fine_amount(self):
         return self.days_overdue * self.FINE_PER_DAY

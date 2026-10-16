@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% block title %}Librarian Issue - Smart Library{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-person-badge"></i> Librarian - Issue Book</h2>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Issue Book to Student</h5>
+                <form method="post" id="issue-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Student Card Number</label>
+                        <div class="input-group">
+                            <input type="text" name="card_number" id="card_number" class="form-control form-control-lg" placeholder="LIB20260001" required autofocus>
+                            <button type="button" class="btn btn-outline-secondary" onclick="scanCard()">
+                                <i class="bi bi-upc-scan"></i> Scan
+                            </button>
+                        </div>
+                        <small class="text-muted">Format: LIB2026XXXX</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Book ISBN</label>
+                        <div class="input-group">
+                            <input type="text" name="isbn" id="isbn" class="form-control form-control-lg" placeholder="9780061122415" required>
+                            <button type="button" class="btn btn-outline-secondary" onclick="scanBook()">
+                                <i class="bi bi-upc-scan"></i> Scan
+                            </button>
+                        </div>
+                        <small class="text-muted">13-digit ISBN</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="bi bi-book"></i> Issue Book
+                    </button>
+                </form>
+
+                <!-- Scanner Modal -->
+                <div class="modal fade" id="scanModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="scanModalTitle">Scan</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div id="reader" style="width: 100%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5>Quick Info</h5>
+                <p><strong>Total Members:</strong> {{ total_members|default:"-" }}</p>
+                <p><strong>Total Books:</strong> {{ total_books|default:"-" }}</p>
+                <hr>
+                <h6>Recent Issues</h6>
+                <ul class="list-group">
+                    {% for record in recent_records %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ record.member.user.username }}</strong><br>
+                                <small>{{ record.book.title }}</small>
+                            </div>
+                            <small class="text-muted">{{ record.borrow_date }}</small>
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item text-muted">No recent issues</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+let html5QrCode = null;
+let currentScanTarget = null;
+
+function scanCard() {
+    currentScanTarget = 'card_number';
+    document.getElementById('scanModalTitle').textContent = 'Scan Student Card';
+    startScanner();
+}
+
+function scanBook() {
+    currentScanTarget = 'isbn';
+    document.getElementById('scanModalTitle').textContent = 'Scan Book ISBN';
+    startScanner();
+}
+
+function startScanner() {
+    const modal = new bootstrap.Modal(document.getElementById('scanModal'));
+    modal.show();
+
+    setTimeout(() => {
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("reader");
+        }
+
+        html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 150 } },
+            (decodedText) => {
+                if (currentScanTarget) {
+                    document.getElementById(currentScanTarget).value = decodedText;
+                    stopScanner();
+                    modal.hide();
+                }
+            },
+            (errorMessage) => {}
+        ).catch(err => {
+            alert("Camera access denied: " + err);
+        });
+    }, 500);
+}
+
+function stopScanner() {
+    if (html5QrCode) {
+        html5QrCode.stop().catch(() => {});
+    }
+}
+
+document.getElementById('scanModal').addEventListener('hidden.bs.modal', function() {
+    stopScanner();
+});
+</script>
+{% endblock %}

@@ -27,7 +27,7 @@
         <div class="col-md-4 mb-4">
             <div class="card h-100">
                 {% if book.cover_image %}
-                    <img src="{{ book.cover_image.url }}" class="card-img-top" alt="{{ book.title }}" style="height: 200px; object-fit: cover;">
+                    <img src="{{ book.cover_image }}" class="card-img-top" alt="{{ book.title }}" style="height: 200px; object-fit: cover;">
                 {% else %}
                     <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
                         <i class="bi bi-book fs-1"></i>
@@ -95,52 +95,52 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('search-input');
     const resultsBox = document.getElementById('autocomplete-results');
 
-    searchInput.addEventListener('input', function() {
-        const query = this.value.trim();
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim();
 
-        if (query.length < 2) {
-            resultsBox.innerHTML = '';
-            return;
-        }
-
-        fetch(`/api/autocomplete/?q=${encodeURIComponent(query)}`)
-            .then(response => response.json())
-            .then(data => {
+            if (query.length < 2) {
                 resultsBox.innerHTML = '';
+                return;
+            }
 
-                if (data.results.length === 0) {
-                    resultsBox.innerHTML = '<div class="list-group-item text-muted">No books found</div>';
-                    return;
-                }
+            fetch(`/api/autocomplete/?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    resultsBox.innerHTML = '';
 
-                data.results.forEach(book => {
-                    const item = document.createElement('a');
-                    item.href = `/books/${book.id}/`;
-                    item.className = 'list-group-item list-group-item-action';
-                    item.innerHTML = `
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>${book.title}</strong><br>
-                                <small class="text-muted">by ${book.author}</small>
+                    if (data.results.length === 0) {
+                        resultsBox.innerHTML = '<div class="list-group-item text-muted">No books found</div>';
+                        return;
+                    }
+
+                    data.results.forEach(book => {
+                        const item = document.createElement('a');
+                        item.href = `/books/${book.id}/`;
+                        item.className = 'list-group-item list-group-item-action';
+                        item.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${book.title}</strong><br>
+                                    <small class="text-muted">by ${book.author}</small>
+                                </div>
+                                <span class="badge ${book.available ? 'bg-success' : 'bg-danger'}">
+                                    ${book.available ? book.available_copies + ' available' : 'Unavailable'}
+                                </span>
                             </div>
-                            <span class="badge ${book.available ? 'bg-success' : 'bg-danger'}">
-                                ${book.available ? book.available_copies + ' available' : 'Unavailable'}
-                            </span>
-                        </div>
-                    `;
-                    resultsBox.appendChild(item);
-                });
-            })
-            .catch(error => {
-                console.error('Autocomplete error:', error);
-            });
-    });
+                        `;
+                        resultsBox.appendChild(item);
+                    });
+                })
+                .catch(error => console.error('Autocomplete error:', error));
+        });
 
-    document.addEventListener('click', function(e) {
-        if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
-            resultsBox.innerHTML = '';
-        }
-    });
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+                resultsBox.innerHTML = '';
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
