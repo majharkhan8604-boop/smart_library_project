@@ -59,11 +59,7 @@ WSGI_APPLICATION = 'smart_library.wsgi.application'
 
 
 # ============ DATABASE CONFIGURATION ============
-# Local development: MySQL
-# Production (PythonAnywhere): SQLite
-
 if os.environ.get('PYTHONANYWHERE_SITE'):
-    # Production — SQLite
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -71,7 +67,6 @@ if os.environ.get('PYTHONANYWHERE_SITE'):
         }
     }
 else:
-    # Local development — MySQL
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
@@ -129,3 +124,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
 }
+
+
+# ============ AUTH REDIRECTS ============
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
