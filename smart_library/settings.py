@@ -130,15 +130,21 @@ LOGOUT_REDIRECT_URL = '/'
 # Whitelist — sirf yeh pages bina login ke accessible
 # Baaki SAB kuch login-protected hai (API, Admin, Static, Media)
 LOGIN_EXEMPT_URLS = [
-    # Authentication pages (zaroori)
+    # Auth Pages
     r'^login/$',
     r'^register/$',
     r'^logout/$',
-    
-    # Admin login page (admin panel ke liye zaroori)
     r'^admin/login/$',
-    
-    # API auth endpoints (mobile app ke liye)
     r'^api/auth/login/$',
     r'^api/auth/register/$',
+    
+    # Public Browsing Pages (Bina login ke dekh sakte hain)
+    r'^$',                      # Home Page
+    r'^books/$',                # Books List
+    r'^books/\d+/$',            # Book Detail Page (jaise /books/5/)
+    r'^recommendations/$',      # Recommendations Page
+    r'^chatbot/$',              # Chatbot Page khulega
+    r'^api/autocomplete/',      # Search Autocomplete
+    r'^static/',
+    r'^media/',
 ]
