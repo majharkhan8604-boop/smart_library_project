@@ -2,9 +2,12 @@ from datetime import date
 from django.contrib import admin, messages
 from django.utils.html import format_html
 from .models import Category, Book, Member, BorrowRecord, Review, Reservation
-from .utils import fetch_cover_from_google_books, fetch_cover_from_openlibrary
+from .utils import fetch_cover_from_google_books
 
-
+try:
+    from .utils import fetch_cover_from_openlibrary
+except ImportError:
+    fetch_cover_from_openlibrary = None
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'description')
