@@ -414,33 +414,54 @@ def chatbot_page(request):
     return render(request, 'books/chatbot.html')
 
 
+@csrf_exempt
 def chatbot_api(request):
     if request.method == 'POST':
-        message = request.POST.get('message', '').strip()
+        # Data handle karein
+        if request.content_type == 'application/json':
+            try:
+                data = json.loads(request.body)
+                message = data.get('message', '').strip()
+            except json.JSONDecodeError:
+                message = ''
+        else:
+            message = request.POST.get('message', '').strip()
+
         if not message:
             return JsonResponse({'error': 'Empty message'}, status=400)
 
-        result = chatbot_response(message, request.user)
+        try:
+            user = request.user if request.user.is_authenticated else None
+            result = chatbot_response(message, user)
 
-        books_data = []
-        for book in result.get('books', []):
-            books_data.append({
-                'id': book.id,
-                'title': book.title,
-                'author': book.author,
-                'available': book.is_available,
-                'available_copies': book.available_copies,
-                'average_rating': book.average_rating,
-                'category': book.category.name if book.category else 'Uncategorized',
+            # SAFE CHECK: Agar result None hai toh default dictionary banao
+            if not isinstance(result, dict):
+                result = {
+                    'text': "I am having trouble understanding right now. Please try asking something else.",
+                    'books': []
+                }
+
+            books_data = []
+            for book in result.get('books', []):
+                books_data.append({
+                    'id': book.id,
+                    'title': book.title,
+                    'author': book.author,
+                    'available': book.is_available,
+                    'available_copies': book.available_copies,
+                    'average_rating': book.average_rating,
+                    'category': book.category.name if book.category else 'Uncategorized',
+                })
+
+            return JsonResponse({
+                'text': result.get('text', ''),
+                'books': books_data,
             })
-
-        return JsonResponse({
-            'text': result['text'],
-            'books': books_data,
-        })
+        except Exception as e:
+            print(f"CHATBOT ERROR: {str(e)}")
+            return JsonResponse({'text': f"Error: {str(e)}", 'books': []}, status=500)
 
     return JsonResponse({'error': 'POST required'}, status=405)
-
 
 # ============ LIBRARIAN ISSUE SYSTEM ============
 
