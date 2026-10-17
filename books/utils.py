@@ -138,22 +138,6 @@ def fetch_cover_from_openlibrary(isbn):
         print(f"Open Library failed for ISBN {isbn}: {e}")
         return None
 
-def fetch_cover_from_openlibrary(isbn):
-    """Open Library se cover fetch karein (bina API key)"""
-    try:
-        url = f"https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
-
-        req = urllib.request.Request(url, headers={'User-Agent': 'SmartLibrary/1.0'})
-        with urllib.request.urlopen(req, timeout=8) as response:
-            if response.status == 200:
-                content_type = response.headers.get('Content-Type', '')
-                if 'image' in content_type:
-                    return url
-        return None
-    except Exception as e:
-        print(f"Open Library failed for ISBN {isbn}: {e}")
-        return None
-
     if 'help' in message_lower:
         response['text'] = "I can help you with:\n\n• Category search: 'science books', 'history books'\n• Author search: 'books by Stephen Hawking'\n• Ratings: 'best books', 'top rated'\n• Availability: 'available books'\n• Recommendations: 'recommend books'"
         return response
