@@ -115,7 +115,11 @@ def chatbot_response(message, user=None):
     greetings = ['hi', 'hello', 'hey', 'namaste', 'hii', 'helo']
     if any(g in message_lower.split() for g in greetings) or message_lower in greetings:
         response['text'] = "Hello! 👋 I'm the Smart Library assistant. You can ask me about books. For example:\n\n• 'suggest science fiction books'\n• 'best rated books'\n• 'programming books'\n• 'books by Paulo Coelho'"
-        return response
+    # Fallback response agar kuch bhi match na ho
+    if not response.get('text'):
+        response['text'] = "I couldn't find any books for that. Try asking for 'science books', 'best rated books', or 'available books'."
+       
+ return response
 
 
 def fetch_cover_from_openlibrary(isbn):
