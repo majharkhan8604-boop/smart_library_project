@@ -143,7 +143,8 @@ LOGIN_EXEMPT_URLS = [
     r'^books/$',                # Books List
     r'^books/\d+/$',            # Book Detail Page (jaise /books/5/)
     r'^recommendations/$',      # Recommendations Page
-    r'^chatbot/$',              # Chatbot Page khulega
+    r'^chatbot/$',
+    r'^chatbot/api/$',              # Chatbot Page khulega
     r'^api/autocomplete/',      # Search Autocomplete
     r'^static/',
     r'^media/',
