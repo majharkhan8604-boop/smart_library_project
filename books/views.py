@@ -1,4 +1,5 @@
 import csv
+import json
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
@@ -8,6 +9,7 @@ from django.contrib import messages
 from django.db.models import Q, Avg, Sum
 from django.core.paginator import Paginator
 from datetime import date, timedelta
+from django.views.decorators.csrf import csrf_exempt
 from .models import Book, Category, Member, BorrowRecord, Review, Reservation
 from .utils import (
     send_due_reminder, send_overdue_notice, send_waitlist_ready, send_fine_reminder,
