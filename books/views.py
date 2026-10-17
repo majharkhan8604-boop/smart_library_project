@@ -16,14 +16,17 @@ from .utils import (
 
 
 def home(request):
-    featured_books = Book.objects.all()[:8]
+    featured_books = Book.objects.all().order_by('-added_on')[:8]
     categories = Category.objects.all()
+    total_books = Book.objects.count()
+    total_members = Member.objects.count()
+
     return render(request, 'books/home.html', {
         'featured_books': featured_books,
         'categories': categories,
+        'total_books': total_books,
+        'total_members': total_members,
     })
-
-
 def book_list(request):
     query = request.GET.get('q', '')
     category_id = request.GET.get('category', '')

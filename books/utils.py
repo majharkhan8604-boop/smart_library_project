@@ -8,35 +8,36 @@ from django.db.models import Q, Avg
 
 
 # ============ GOOGLE BOOKS API ============
-
 def fetch_cover_from_google_books(isbn):
-    """
-    Fetch cover image URL from Google Books API using ISBN.
-    Returns: URL string or None
-    """
-    try:
-        query = f"isbn:{isbn}"
-        url = f"https://www.googleapis.com/books/v1/volumes?q={urllib.parse.quote(query)}"
+    API_KEY = 'AIzaSyCKvoI9D7usNqzWqKKLEO8WJpOW4K2DwRI'
 
-        req = urllib.request.Request(url, headers={'User-Agent': 'SmartLibrary/1.0'})
-        with urllib.request.urlopen(req, timeout=8) as response:
-            data = json.loads(response.read().decode('utf-8'))
+    # Multiple query formats try karein (isbn: prefix ke bina)
+    queries = [
+        isbn,                      # Simple ISBN (best)
+        f"isbn:{isbn}",            # isbn: prefix
+        isbn.replace('-', ''),     # Without dashes
+    ]
 
-        if data.get('totalItems', 0) > 0:
-            volume_info = data['items'][0].get('volumeInfo', {})
-            image_links = volume_info.get('imageLinks', {})
+    for query in queries:
+        try:
+            url = f"https://www.googleapis.com/books/v1/volumes?q={urllib.parse.quote(query)}&key={API_KEY}"
 
-            for size in ['extraLarge', 'large', 'medium', 'small', 'thumbnail', 'smallThumbnail']:
-                if size in image_links:
-                    img_url = image_links[size].replace('http://', 'https://')
-                    return img_url
+            req = urllib.request.Request(url, headers={'User-Agent': 'SmartLibrary/1.0'})
+            with urllib.request.urlopen(req, timeout=8) as response:
+                data = json.loads(response.read().decode('utf-8'))
 
-        return None
-    except Exception as e:
-        print(f"Cover fetch failed for ISBN {isbn}: {e}")
-        return None
+            if data.get('totalItems', 0) > 0:
+                for item in data['items']:
+                    volume_info = item.get('volumeInfo', {})
+                    image_links = volume_info.get('imageLinks', {})
 
+                    for size in ['extraLarge', 'large', 'medium', 'small', 'thumbnail', 'smallThumbnail']:
+                        if size in image_links:
+                            return image_links[size].replace('http://', 'https://')
+        except Exception as e:
+            print(f"Query '{query}' failed: {e}")
 
+    return None
 # ============ EMAIL FUNCTIONS ============
 
 def send_due_reminder(borrow_record):
@@ -115,6 +116,39 @@ def chatbot_response(message, user=None):
     if any(g in message_lower.split() for g in greetings) or message_lower in greetings:
         response['text'] = "Hello! 👋 I'm the Smart Library assistant. You can ask me about books. For example:\n\n• 'suggest science fiction books'\n• 'best rated books'\n• 'programming books'\n• 'books by Paulo Coelho'"
         return response
+
+
+def fetch_cover_from_openlibrary(isbn):
+    """Open Library se cover fetch karein (bina API key)"""
+    try:
+        url = f"https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
+
+        req = urllib.request.Request(url, headers={'User-Agent': 'SmartLibrary/1.0'})
+        with urllib.request.urlopen(req, timeout=8) as response:
+            if response.status == 200:
+                content_type = response.headers.get('Content-Type', '')
+                if 'image' in content_type:
+                    return url
+        return None
+    except Exception as e:
+        print(f"Open Library failed for ISBN {isbn}: {e}")
+        return None
+
+def fetch_cover_from_openlibrary(isbn):
+    """Open Library se cover fetch karein (bina API key)"""
+    try:
+        url = f"https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
+
+        req = urllib.request.Request(url, headers={'User-Agent': 'SmartLibrary/1.0'})
+        with urllib.request.urlopen(req, timeout=8) as response:
+            if response.status == 200:
+                content_type = response.headers.get('Content-Type', '')
+                if 'image' in content_type:
+                    return url
+        return None
+    except Exception as e:
+        print(f"Open Library failed for ISBN {isbn}: {e}")
+        return None
 
     if 'help' in message_lower:
         response['text'] = "I can help you with:\n\n• Category search: 'science books', 'history books'\n• Author search: 'books by Stephen Hawking'\n• Ratings: 'best books', 'top rated'\n• Availability: 'available books'\n• Recommendations: 'recommend books'"
