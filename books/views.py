@@ -18,7 +18,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import Book, Category, Member, BorrowRecord, Review, Reservation
 from .utils import (
     send_due_reminder, send_overdue_notice, send_waitlist_ready, send_fine_reminder,
-    chatbot_response
+    chatbot_response, fetch_cover_from_google_books, fetch_cover_from_openlibrary
 )
 
 
@@ -690,7 +690,7 @@ def register_view(request):
 
         # User banayein lekin inactive rakhein
         user = User.objects.create_user(username=username, email=email, password=password)
-        user.is_active = False  # Jab tak email verify nahi hoga, login nahi kar payega
+        user.is_active = False
         user.save()
 
         # Member profile banayein
@@ -700,24 +700,26 @@ def register_view(request):
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         
-        # Live site ka URL automatically pick karega
         current_site = request.get_host()
         protocol = 'https' if request.is_secure() else 'http'
         verify_url = f"{protocol}://{current_site}/verify-email/{uid}/{token}/"
 
-        # Email bhejein
         subject = "Verify your Smart Library Account"
         message = f"Hello {username},\n\nPlease click the link below to verify your email and activate your account:\n\n{verify_url}\n\nIf you didn't create this account, please ignore this email."
         
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            [email],
-            fail_silently=False,
-        )
+        try:
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False,
+            )
+            messages.success(request, "Registration successful! Please check your email to verify your account before logging in.")
+        except Exception as e:
+            messages.error(request, f"Registration successful, but we could not send the verification email. Error: {str(e)}")
+            return redirect('books:register')
 
-        messages.success(request, "Registration successful! Please check your terminal/email to verify your account before logging in.")
         return redirect('books:login')
 
     return render(request, 'books/register.html')
@@ -748,16 +750,20 @@ def verify_email(request, uidb64, token):
         user = None
 
     if user is not None and default_token_generator.check_token(user, token):
+        # Account Active Karein
         user.is_active = True
         user.save()
         
-        # Member model mein bhi update karein
-        if hasattr(user, 'member'):
-            user.member.email_verified = True
-            user.member.save()
+        # Member model mein bhi verify mark karein
+        try:
+            member = Member.objects.get(user=user)
+            member.email_verified = True
+            member.save()
+        except Member.DoesNotExist:
+            pass
             
-        messages.success(request, "Your email has been verified! You can now login.")
+        messages.success(request, "Your email has been verified successfully! You can now login.")
         return redirect('books:login')
     else:
-        messages.error(request, "The verification link is invalid or has expired.")
-        return redirect('books:login')
+        messages.error(request, "The verification link is invalid or has expired. Please register again.")
+        return redirect('books:register')
