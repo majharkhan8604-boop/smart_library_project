@@ -4,9 +4,8 @@ from . import views
 app_name = 'books'
 
 urlpatterns = [
-    path('renew/<int:record_id>/', views.renew_book, name='renew_book'),
     path('librarian/issue/', views.librarian_issue, name='librarian_issue'),
-    path('librarian/receipt/<int:record_id>/', views.issue_receipt, name='issue_receipt'),
+    path('scanner/', views.scanner_view, name='scanner'),
     path('', views.home, name='home'),
     path('books/', views.book_list, name='book_list'),
     path('api/autocomplete/', views.autocomplete_books, name='autocomplete_books'),
@@ -31,7 +30,12 @@ urlpatterns = [
     path('reports/export/borrow-records/', views.export_borrow_records_csv, name='export_borrow_records'),
     path('reports/export/members/', views.export_members_csv, name='export_members'),
     path('reports/export/reservations/', views.export_reservations_csv, name='export_reservations'),
+    
+    # Auth URLs
     path('register/', views.register_view, name='register'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    
+    # Email Verification URL
+    path('verify-email/<str:uidb64>/<str:token>/', views.verify_email, name='verify_email'),
 ]

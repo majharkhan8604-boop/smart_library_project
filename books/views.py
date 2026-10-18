@@ -1,5 +1,10 @@
 import csv
 import json
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.tokens import default_token_generator
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
@@ -683,14 +688,39 @@ def register_view(request):
             messages.error(request, "Username already exists.")
             return redirect('books:register')
 
+        # User banayein lekin inactive rakhein
         user = User.objects.create_user(username=username, email=email, password=password)
-        Member.objects.create(user=user)
-        login(request, user)
-        messages.success(request, "Registration successful!")
-        return redirect('books:home')
+        user.is_active = False  # Jab tak email verify nahi hoga, login nahi kar payega
+        user.save()
+
+        # Member profile banayein
+        member = Member.objects.create(user=user, email_verified=False)
+
+        # Verification Token aur Link banayein
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        
+        # Live site ka URL automatically pick karega
+        current_site = request.get_host()
+        protocol = 'https' if request.is_secure() else 'http'
+        verify_url = f"{protocol}://{current_site}/verify-email/{uid}/{token}/"
+
+        # Email bhejein
+        subject = "Verify your Smart Library Account"
+        message = f"Hello {username},\n\nPlease click the link below to verify your email and activate your account:\n\n{verify_url}\n\nIf you didn't create this account, please ignore this email."
+        
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+            fail_silently=False,
+        )
+
+        messages.success(request, "Registration successful! Please check your terminal/email to verify your account before logging in.")
+        return redirect('books:login')
 
     return render(request, 'books/register.html')
-
 
 def login_view(request):
     if request.method == 'POST':
@@ -710,3 +740,24 @@ def logout_view(request):
     logout(request)
     messages.success(request, "Logged out successfully.")
     return redirect('books:home')
+def verify_email(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        user.is_active = True
+        user.save()
+        
+        # Member model mein bhi update karein
+        if hasattr(user, 'member'):
+            user.member.email_verified = True
+            user.member.save()
+            
+        messages.success(request, "Your email has been verified! You can now login.")
+        return redirect('books:login')
+    else:
+        messages.error(request, "The verification link is invalid or has expired.")
+        return redirect('books:login')

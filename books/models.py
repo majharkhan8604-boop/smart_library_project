@@ -44,16 +44,18 @@ class Book(models.Model):
     @property
     def waitlist_count(self):
         return self.reservations.filter(status='waiting').count()
-
-
 class Member(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='member')
     phone = models.CharField(max_length=15, blank=True)
     address = models.TextField(blank=True)
     membership_date = models.DateField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
-    library_card_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
     profile_photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
+    library_card_number = models.CharField(max_length=20, unique=True, blank=True)
+    
+    # Naya field Email Verification ke liye
+    email_verified = models.BooleanField(default=False)
+
     def save(self, *args, **kwargs):
         if not self.library_card_number:
             last_member = Member.objects.order_by('-id').first()
@@ -63,6 +65,7 @@ class Member(models.Model):
                 num += 1
             self.library_card_number = f"LIB2026{num:04d}"
         super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.user.username} ({self.library_card_number})"
 
