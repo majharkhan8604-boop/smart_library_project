@@ -17,8 +17,9 @@ from .utils import (
 )
 
 
+
 def home(request):
-    featured_books = Book.objects.all().order_by('-added_on')[:16]
+    featured_books = Book.objects.all().order_by('-added_on')[:100]
     categories = Category.objects.all()
     total_books = Book.objects.count()
     total_members = Member.objects.count()
